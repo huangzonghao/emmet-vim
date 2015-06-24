@@ -1,7 +1,7 @@
 "=============================================================================
 " emmet.vim
 " Author: Yasuhiro Matsumoto <mattn.jp@gmail.com>
-" Last Change: 17-Dec-2014.
+" Last Change: 21-Feb-2015.
 
 let s:save_cpo = &cpoptions
 set cpoptions&vim
@@ -237,7 +237,11 @@ function! emmet#toString(...) abort
         let snippet_node = emmet#newNode()
         let snippet_node.value = '{'.tmp.'}'
         let snippet_node.important = current.important
-        let str = emmet#lang#{rtype}#toString(s:emmet_settings, snippet_node, type, inline, filters, s:itemno(group_itemno, current), indent)
+        let snippet_node.multiplier = current.multiplier
+        let str .= emmet#lang#{rtype}#toString(s:emmet_settings, snippet_node, type, inline, filters, s:itemno(group_itemno, current), indent)
+        if current.multiplier > 1
+          let str .= "\n"
+        endif
       else
         if len(current.name)
           let str .= current.name
@@ -622,9 +626,9 @@ function! emmet#expandAbbr(mode, abbr) range abort
     let expand = emmet#unescapeDollarExpr(expand)
     if a:mode ==# 2 && visualmode() ==# 'v'
       if a:firstline ==# a:lastline
-        let expand = substitute(expand, '\n\s*', '', 'g')
+        let expand = substitute(expand, '[\r\n]\s*', '', 'g')
       else
-        let expand = substitute(expand, '\n$', '', 'g')
+        let expand = substitute(expand, '[\n]$', '', 'g')
       endif
       silent! normal! gv
       let col = col('''<')
@@ -644,14 +648,14 @@ function! emmet#expandAbbr(mode, abbr) range abort
       else
         let indent = ''
       endif
-      let expand = substitute(expand, '\n\s*$', '', 'g')
+      let expand = substitute(expand, '[\r\n]\s*$', '', 'g')
       if emmet#useFilter(filters, 's')
-        let epart = substitute(expand, "\n\s\*", '', 'g')
+        let epart = substitute(expand, '[\r\n]\s\*', '', 'g')
       else
-        let epart = substitute(expand, "\n", "\n" . indent, 'g')
+        let epart = substitute(expand, '[\r\n]', "\n" . indent, 'g')
       endif
       let expand = line[:-len(part)-1] . epart . rest
-      let lines = split(expand, "\n", 1)
+      let lines = split(expand, '[\r\n]', 1)
       if a:mode ==# 2
         silent! exe 'normal! gvc'
       endif
@@ -1814,6 +1818,10 @@ let s:emmet_settings = {
 \        'expandos': {
 \            'choose': 'xsl:choose>xsl:when+xsl:otherwise',
 \        }
+\    },
+\    'jsx': {
+\        'extends': 'html',
+\        'attribute_name': {'class': 'className'},
 \    },
 \    'xslt': {
 \        'extends': 'xsl',
